@@ -29,7 +29,7 @@ workflow Regenie {
         Int? disk
         Int? threads
         String docker_image
-        String docker_image_R
+        String docker_image_R = "r-base:4.0.3"
         Array[Int] chr_list # List of chromosomes for Step 2.
         Int? n_phenotypes # Number of phenotypes used for Step 1.
         Array[String] phenotype_names
