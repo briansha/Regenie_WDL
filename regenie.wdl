@@ -12,8 +12,6 @@ workflow Regenie {
         File bgen_step2
         String fit_bin_out_name
         File? fit_bin_out
-        File? loco1
-        File? loco2
         File? sample
         File? keep
         File? remove
