@@ -241,7 +241,7 @@ task Step1 {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
     }
 }
@@ -418,7 +418,7 @@ task Step2 {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
     }
 }
@@ -456,7 +456,7 @@ task join_Output {
   runtime {
         docker: docker_image_R
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
   }
 }
@@ -512,7 +512,7 @@ task join_Output {
   runtime {
         docker: docker_image_R
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
   }
 }
