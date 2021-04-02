@@ -2,4 +2,4 @@
 
 This is a workflow for regenie. 
 
-Regenie: https://rgcgithub.github.io/regenie/
+regenie: https://rgcgithub.github.io/regenie/
