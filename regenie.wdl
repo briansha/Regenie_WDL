@@ -10,7 +10,7 @@ version development
 ## Cromwell version support - Successfully tested on v59
 ##
 ## Distributed under terms of the MIT License
-## Copyright (c) 2020-2021 Brian Sharber
+## Copyright (c) 2021 Brian Sharber
 ## Contact <brian.sharber@vumc.org>
 
 workflow Regenie {
