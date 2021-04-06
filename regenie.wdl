@@ -1,9 +1,17 @@
-## This workflow runs regenie.
+version development
+
+## Version 04-05-2021
+##
+## This WDL workflow runs regenie.
 ## Made with BGEN files in mind to use as the input genetic data file. - (BGEN version 1.2, 8-bit probabilities)
 ## PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
 ## PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
-
-version 1.0
+##
+## Cromwell version support - Successfully tested on v59
+##
+## Distributed under terms of the MIT License
+## Copyright (c) 2020-2021 Brian Sharber
+## Contact <brian.sharber@vumc.org>
 
 workflow Regenie {
 
