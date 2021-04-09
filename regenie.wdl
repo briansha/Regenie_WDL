@@ -2,7 +2,10 @@ version development
 
 ## Version 04-05-2021
 ##
-## This WDL workflow runs regenie.
+## This WDL workflow runs Regenie.
+## This workflow assumes users have thoroughly read the Regenie docs for caveats and details.
+## Regenie's documentation: https://rgcgithub.github.io/regenie/options/
+##
 ## Made with BGEN files in mind to use as the input genetic data file. - (BGEN version 1.2, 8-bit probabilities)
 ## PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
 ## PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
@@ -15,10 +18,11 @@ version development
 
 workflow Regenie {
 
+    # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
         File bgen_step1
         File bgen_step2
-        String fit_bin_out_name
+        String fit_bin_out_name # File prefix for the list of predictions produced in Step1.
         File? fit_bin_out
         File? sample
         File? keep
@@ -36,16 +40,15 @@ workflow Regenie {
         Int? memory
         Int? disk
         Int? threads
-        String docker_image
+        String docker_image # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
         String docker_image_R = "r-base:4.0.3"
-        Array[Int] chr_list # List of chromosomes for Step 2.
-        Int? n_phenotypes # Number of phenotypes used for Step 1.
-        Array[String] phenotype_names
+        Array[Int] chr_list # List of chromosomes for Step2.
+        Int? n_phenotypes # Number of phenotypes used for Step1.
+        Array[String] phenotype_names # Phenotypes you want to analyze. (Column names).
         
     }
 
-  
-    call Step1 { 
+    call RegenieStep1WholeGenomeModel { 
         input: 
             bgen_step1 = bgen_step1,
             keep = keep,
@@ -61,7 +64,7 @@ workflow Regenie {
     }
     
     scatter (chromosome in chr_list) {
-      call Step2 { 
+      call RegenieStep2AssociationTesting { 
           input: 
               bgen_step2 = bgen_step2,
               keep = keep,
@@ -70,18 +73,18 @@ workflow Regenie {
               exclude = exclude,
               phenoFile = phenoFile,
               remove = remove,
-              pred = Step1.fit_bin_out,
+              pred = RegenieStep1WholeGenomeModel.fit_bin_out,
               memory = memory,
               disk = disk,
               threads = threads,
               docker_image = docker_image,
-              output_locos = Step1.output_locos
+              output_locos = RegenieStep1WholeGenomeModel.output_locos
       }
     }
     
     call join_Output {
       input:
-        output_files = Step2.test_bin_out_firth, # Refers implicitly to the entire array of files that were scattered.
+        output_files = RegenieStep2AssociationTesting.test_bin_out_firth, # Refers implicitly to the entire array of files that were scattered.
         chr_list = chr_list,
         memory = memory,
         disk = disk,
@@ -109,14 +112,17 @@ workflow Regenie {
     	author : "Brian Sharber"
         email : "brian.sharber@vumc.org"
         description : "Run REGENIE"
-       }
+    }
 }
 
-task Step1 {
+# In Step 1, the whole genome regression model is fit to the traits 
+# and a set of genomic predictions are produced as output.
+task RegenieStep1WholeGenomeModel {
 
+    # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
         String docker_image
-        String fit_bin_out_name
+        String fit_bin_out_name # File prefix for the list of predictions produced.
         File bgen_step1
         Int bsize  # 1000 is recommended by regenie's documentation
         Int? memory
@@ -242,8 +248,8 @@ task Step1 {
     >>>
     
     output {
-        File fit_bin_out = "${fit_bin_out_name}_pred.list"
-        Array[File] output_locos = glob("*.loco") # Writes n_files for n_phenotypes.
+        File fit_bin_out = "${fit_bin_out_name}_pred.list" # Refers to the list of loco files written. Lists the files as being located in the current working directory.
+        Array[File] output_locos = glob("*.loco") # Writes n loco files for n phenotypes.
     }
 
     runtime {
@@ -254,8 +260,10 @@ task Step1 {
     }
 }
 
-task Step2 {
+# In Step 2, a set of imputed SNPs are tested for association using a Firth logistic regression model.
+task RegenieStep2AssociationTesting {
 
+    # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
         String docker_image
         File bgen_step2
@@ -265,6 +273,7 @@ task Step2 {
         Int? disk
         Int? threads
         Int bsize  # 1000 is recommended by regenie's documentation
+        File? pred # File containing predictions from Step 1
         
         File? sample
         File? keep
@@ -278,8 +287,7 @@ task Step2 {
         String? covarCol
         String? covarColList
         String? catCovarList
-        File? pred
-        
+
         Boolean ref_first
         Boolean lowmem
         Boolean lowmem_prefix_flag
@@ -339,7 +347,7 @@ task Step2 {
         Boolean strict_check_burden
     }
 
-
+    # Loco files are moved to the current working directory due to the list of predictions (pred) expecting them to be there.
     command <<<
         for file in ~{sep=' ' output_locos}; do \
           mv $file .; \
@@ -426,15 +434,17 @@ task Step2 {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + disk + " HDD"
         cpu: threads
     }
 }
 
+# Join together all output relating to the scattered tasks in Step 2.
+# For each phenotype, one file will be made containing all analysis from Step 1 on each chromosome used in testing.
 task join_Output {
 
   input {
-    Array[Array[File]] output_files
+    Array[Array[File]] output_files # All output from Step 1.
     Array[String] phenotype_names
     Array[Int] chr_list
     Int? memory
@@ -468,10 +478,12 @@ task join_Output {
         cpu: threads
   }
 }
-  task Plots {
+
+# QQ and Manhattan plots
+task Plots {
 
   input {
-    Array[String] phenotype_names_regenie
+    Array[String] phenotype_names_regenie # Format: "<phenotype_name>.regenie". Names of the files produced in join_Output.
     Array[Int] chr_list
     Int? memory
     Int? disk
@@ -480,6 +492,9 @@ task join_Output {
     Array[File] file_input
   }
   
+  # Plots are produced for each phenotype.
+  # For each phenotype, a file containing all of the hits from Step 2 is output.
+  # For each phenotype, a file containing a subset of all of the hits where "-LOG10P > 1.3" from Step 2 is output.
   command <<<
     for file in ~{sep=' ' file_input}; do \
       awk '$13 > 1.3' $file >> ${file%.regenie}_subset.regenie; \
