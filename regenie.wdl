@@ -43,7 +43,6 @@ workflow Regenie {
         String docker_image # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
         String docker_image_R = "r-base:4.0.3"
         Array[Int] chr_list # List of chromosomes for Step2.
-        Int? n_phenotypes # Number of phenotypes used for Step1.
         Array[String] phenotype_names # Phenotypes you want to analyze. (Column names).
         
     }
