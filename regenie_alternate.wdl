@@ -6,8 +6,8 @@ version 1.0
 ## This workflow assumes users have thoroughly read the Regenie docs for caveats and details.
 ## Regenie's documentation: https://rgcgithub.github.io/regenie/options/
 ##
-## Step1 - Made with BGEN files in mind to use as the input genetic data file. - (BGEN version 1.2, 8-bit probabilities).
-## Step2 - Use separate .bed, .bim, .fam files for each chromosome. (If testing chr 1-22, there should be 22 separate files).
+## Step1 - Made with BGEN files in mind to use as the input genetic data file. - (BGEN version 1.2, 8-bit probabilities)
+## Step2 - Use a BGEN file containing all chromosomal data (chr 1-22, etc.)
 ## PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
 ## PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
 ##
@@ -22,7 +22,7 @@ workflow Regenie {
     # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
         File bgen_step1
-        File bed_files_step2_file # File containing list of .bed, .bim, .fam files used for Step2.
+        File bgen_step2
         String fit_bin_out_name = "fit_bin_out" # File prefix for the list of predictions produced in Step1.
         File? fit_bin_out
         File? sample
@@ -45,11 +45,10 @@ workflow Regenie {
         Int maxRetries = 0
         String docker_image = "briansha/regenie:v2.0.1_boost" # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
         String docker_image_R = "r-base:4.0.3"
-        Array[Int] chr_list # List of chromosomes used for analysis.
+        Array[Int] chr_list # List of chromosomes for Step2.
         Array[String] phenotype_names # Phenotypes you want to analyze. (Column names).
-    }
 
-    Array[Array[String]] bed_files_step2 = read_tsv(bed_files_step2_file)
+    }
 
     call RegenieStep1WholeGenomeModel {
         input:
@@ -68,14 +67,12 @@ workflow Regenie {
             docker_image = docker_image
     }
 
-    scatter (files in bed_files_step2) {
+    scatter (chromosome in chr_list) {
       call RegenieStep2AssociationTesting {
           input:
-              bed_step2 = files[0],
-              bim_step2 = files[1],
-              fam_step2 = files[2],
-              chr_name = files[3],
+              bgen_step2 = bgen_step2,
               keep = keep,
+              chr = chromosome, # May need to change to chrList = chr_list later, as chr is Int only...not accounting for X, Y, etc.
               covarFile = covarFile,
               exclude = exclude,
               phenoFile = phenoFile,
@@ -270,7 +267,7 @@ task RegenieStep1WholeGenomeModel {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+		    disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
@@ -283,9 +280,7 @@ task RegenieStep2AssociationTesting {
     # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
         String docker_image
-        File bed_step2
-        File bim_step2
-        File fam_step2
+        File bgen_step2
         Array[File] output_locos
         File? fit_bin_out
         Int? memory
@@ -376,7 +371,7 @@ task RegenieStep2AssociationTesting {
         done
         regenie \
         --step 2 \
-        --bed=~{sub(bed_step2,'\\.bed$','')} \
+        --bgen=~{bgen_step2} \
         --phenoFile=~{phenoFile} \
         ~{if defined(covarFile) then "--covarFile=~{covarFile} " else " "} \
         ~{if defined(sample) then "--sample=~{sample} " else " "} \
@@ -446,7 +441,7 @@ task RegenieStep2AssociationTesting {
         ~{if defined(mask_lovo) then "--mask_lovo=~{mask_lovo} " else " "} \
         ~{if check_burden_files then "--check_burden_files " else " "} \
         ~{if strict_check_burden then "--strict_check_burden " else " "} \
-        --out ~{chr_name}
+        --out ~{chr}
     >>>
 
     output {
@@ -456,7 +451,7 @@ task RegenieStep2AssociationTesting {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+		    disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
@@ -468,15 +463,15 @@ task RegenieStep2AssociationTesting {
 task join_Output {
 
   input {
-    Array[Array[File]] output_files # All output from Step 1.
-    Array[String] phenotype_names
-    Array[Int] chr_list
-    Int? memory
-    Int? disk
-    Int? threads
-    Int? preemptible
-    Int? maxRetries
-    String docker_image_R
+      Array[Array[File]] output_files # All output from Step 1.
+      Array[String] phenotype_names
+      Array[Int] chr_list
+      Int? memory
+      Int? disk
+      Int? threads
+      Int? preemptible
+      Int? maxRetries
+      String docker_image_R
   }
 
   Array[File] all_output_files = flatten(output_files)
@@ -500,7 +495,7 @@ task join_Output {
   runtime {
         docker: docker_image_R
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+		    disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
@@ -565,7 +560,7 @@ task Plots {
   runtime {
         docker: docker_image_R
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+		    disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
