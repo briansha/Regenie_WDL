@@ -122,7 +122,7 @@ workflow Regenie {
     }
 
     meta {
-    	  author : "Brian Sharber"
+    	author : "Brian Sharber"
         email : "brian.sharber@vumc.org"
         description : "Run REGENIE"
     }
@@ -270,7 +270,7 @@ task RegenieStep1WholeGenomeModel {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
@@ -456,7 +456,7 @@ task RegenieStep2AssociationTesting {
     runtime {
         docker: docker_image
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
@@ -500,7 +500,7 @@ task join_Output {
   runtime {
         docker: docker_image_R
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
@@ -565,7 +565,7 @@ task Plots {
   runtime {
         docker: docker_image_R
         memory: memory + " GiB"
-	      disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: threads
         preemptible: preemptible
         maxRetries: maxRetries
