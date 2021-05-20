@@ -1,0 +1,8 @@
+version: 1.2
+workflows:
+   - name: regenie
+     subclass: WDL
+     primaryDescriptorPath: regenie.wdl
+   - name: regenie_alternate
+     subclass: WDL
+     primaryDescriptorPath: regenie_alternate.wdl
