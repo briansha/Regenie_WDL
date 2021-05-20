@@ -124,7 +124,7 @@ workflow Regenie {
     meta {
     	author : "Brian Sharber"
         email : "brian.sharber@vumc.org"
-        description : "This workflow runs Regenie - see the README on the github for more information."
+        description : "This workflow runs Regenie - see the README on the github for more information - https://github.com/briansha/Regenie_WDL."
     }
 }
 
