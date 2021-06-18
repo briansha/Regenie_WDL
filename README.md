@@ -2,6 +2,8 @@
 
 This is a workflow for regenie. 
 
+This workflow can also be found on Dockstore: https://dockstore.org/workflows/github.com/briansha/Regenie_WDL:master?tab=info
+
 regenie: https://rgcgithub.github.io/regenie/
 
 Step1 and Step2 use docker images with regenie compiled with Boost Iostream installed: https://github.com/rgcgithub/regenie/wiki/Using-docker
