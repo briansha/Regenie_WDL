@@ -2,7 +2,7 @@
 
 This is a workflow for regenie. 
 
-This workflow can also be found on Dockstore: https://dockstore.org/workflows/github.com/briansha/Regenie_WDL:master?tab=info
+regenie.wdl can also be found on Dockstore: https://dockstore.org/workflows/github.com/briansha/Regenie_WDL:master?tab=info
 
 regenie: https://rgcgithub.github.io/regenie/
 
