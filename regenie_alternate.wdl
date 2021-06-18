@@ -242,7 +242,7 @@ task RegenieStep1WholeGenomeModel {
     runtime {
         docker: docker
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
@@ -428,7 +428,7 @@ task RegenieStep2AssociationTesting {
     runtime {
         docker: docker
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
@@ -473,7 +473,7 @@ task join_Output {
   runtime {
         docker: docker
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
@@ -541,7 +541,7 @@ task Plots {
   runtime {
         docker: docker
         memory: memory + " GiB"
-		disks: "local-disk " + disk + " HDD"
+	disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
