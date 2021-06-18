@@ -1,6 +1,6 @@
 version 1.0
 
-## Version 05-14-2021
+## Version 06-06-2021
 ##
 ## This WDL workflow runs Regenie.
 ## This workflow assumes users have thoroughly read the Regenie docs for caveats and details.
@@ -11,18 +11,17 @@ version 1.0
 ## PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
 ## PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
 ##
-## Cromwell version support - Successfully tested on v62
+## Cromwell version support - Successfully tested on v63
 ##
 ## Distributed under terms of the MIT License
 ## Copyright (c) 2021 Brian Sharber
 ## Contact <brian.sharber@vumc.org>
 
 workflow Regenie {
-
     # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
         File bgen_step1
-        File bed_files_step2_file # File containing list of .bed, .bim, .fam files used for Step2.
+        File bed_files_step2_file # File containing tab-separated list of: .bed file, .bim file, .fam file, and corresponding chromosome number - for all files used for Step2.
         String fit_bin_out_name = "fit_bin_out" # File prefix for the list of predictions produced in Step1.
         File? fit_bin_out
         File? sample
@@ -38,17 +37,11 @@ workflow Regenie {
         String? covarColList
         String? catCovarList
         File? pred
-        Int memory = 4
-        Int disk = 200
-        Int threads = 1
-        Int preemptible = 1
-        Int maxRetries = 0
-        String docker_image = "briansha/regenie:v2.0.1_boost" # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
-        String docker_image_R = "r-base:4.0.3"
         Array[Int] chr_list # List of chromosomes used for analysis.
         Array[String] phenotype_names # Phenotypes you want to analyze. (Column names).
+        String regenie_docker = "briansha/regenie:v2.0.1_boost" # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
+        String r_base_docker = "r-base:4.0.3"
     }
-
     Array[Array[String]] bed_files_step2 = read_tsv(bed_files_step2_file)
 
     call RegenieStep1WholeGenomeModel {
@@ -60,12 +53,7 @@ workflow Regenie {
             exclude = exclude,
             phenoFile = phenoFile,
             remove = remove,
-            memory = memory,
-            disk = disk,
-            threads = threads,
-            preemptible = preemptible,
-            maxRetries = maxRetries,
-            docker_image = docker_image
+            docker = regenie_docker
     }
 
     scatter (files in bed_files_step2) {
@@ -81,12 +69,7 @@ workflow Regenie {
               phenoFile = phenoFile,
               remove = remove,
               pred = RegenieStep1WholeGenomeModel.fit_bin_out,
-              memory = memory,
-              disk = disk,
-              threads = threads,
-              preemptible = preemptible,
-              maxRetries = maxRetries,
-              docker_image = docker_image,
+              docker = regenie_docker,
               output_locos = RegenieStep1WholeGenomeModel.output_locos
       }
     }
@@ -95,24 +78,14 @@ workflow Regenie {
       input:
         output_files = RegenieStep2AssociationTesting.test_bin_out_firth, # Refers implicitly to the entire array of files that were scattered.
         chr_list = chr_list,
-        memory = memory,
-        disk = disk,
-        threads = threads,
-        preemptible = preemptible,
-        maxRetries = maxRetries,
         phenotype_names = phenotype_names,
-        docker_image_R = docker_image_R
+        docker = r_base_docker
     }
 
     call Plots {
       input:
         chr_list = chr_list,
-        memory = memory,
-        disk = disk,
-        threads = threads,
-        preemptible = preemptible,
-        maxRetries = maxRetries,
-        docker_image_R = docker_image_R,
+        docker = r_base_docker,
         file_input = join_Output.outputs
     }
 
@@ -124,25 +97,24 @@ workflow Regenie {
     meta {
     	author : "Brian Sharber"
         email : "brian.sharber@vumc.org"
-        description : "Run REGENIE"
+        description : "This workflow runs Regenie - see the README on the github for more information - https://github.com/briansha/Regenie_WDL."
     }
 }
 
 # In Step 1, the whole genome regression model is fit to the traits
 # and a set of genomic predictions are produced as output.
 task RegenieStep1WholeGenomeModel {
-
     # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
-        String docker_image
+        String docker
         String fit_bin_out_name # File prefix for the list of predictions produced.
         File bgen_step1
-        Int bsize  # 1000 is recommended by regenie's documentation
-        Int? memory
-        Int? disk
-        Int? threads
-        Int? preemptible
-        Int? maxRetries
+        Int bsize = 1000  # 1000 is recommended by regenie's documentation
+        Float memory = 3.5
+        Int? disk_size_override
+        Int cpu = 1
+        Int preemptible = 1
+        Int maxRetries = 0
 
         File? sample
         File? keep
@@ -200,8 +172,11 @@ task RegenieStep1WholeGenomeModel {
         Boolean verbose = false
         Boolean help = false
     }
+    Float genotype_size = size(bgen_step1, "GiB")
+    Int disk = select_first([disk_size_override, ceil(10.0 + 2.0 * genotype_size)])
 
     command <<<
+        set -euo pipefail
         regenie \
         --step 1 \
         --bgen=~{bgen_step1} \
@@ -268,10 +243,10 @@ task RegenieStep1WholeGenomeModel {
     }
 
     runtime {
-        docker: docker_image
+        docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
-        cpu: threads
+		disks: "local-disk " + disk + " HDD"
+        cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
     }
@@ -279,22 +254,21 @@ task RegenieStep1WholeGenomeModel {
 
 # In Step 2, a set of imputed SNPs are tested for association using a Firth logistic regression model.
 task RegenieStep2AssociationTesting {
-
     # Refer to Regenie's documentation for the descriptions to most of these parameters.
     input {
-        String docker_image
+        String docker
         File bed_step2
         File bim_step2
         File fam_step2
         Array[File] output_locos
         File? fit_bin_out
-        Int? memory
-        Int? disk
-        Int? threads
-        Int? preemptible
-        Int? maxRetries
+        Float memory = 3.5
+        Int? disk_size_override
+        Int cpu = 1
+        Int preemptible = 1
+        Int maxRetries = 0
 
-        Int bsize  # 1000 is recommended by regenie's documentation
+        Int bsize = 1000  # 1000 is recommended by regenie's documentation
         File? pred # File containing predictions from Step 1
         String? chr_name
         File? sample
@@ -368,9 +342,12 @@ task RegenieStep2AssociationTesting {
         Boolean check_burden_files = false
         Boolean strict_check_burden = false
     }
+    Float dosage_size = size(bed_step2, "GiB")
+    Int disk = select_first([disk_size_override, ceil(10.0 + 2.0 * dosage_size)])
 
     # Loco files are moved to the current working directory due to the list of predictions (pred) expecting them to be there.
     command <<<
+        set -euo pipefail
         for file in ~{sep=' ' output_locos}; do \
           mv $file .; \
         done
@@ -454,10 +431,10 @@ task RegenieStep2AssociationTesting {
     }
 
     runtime {
-        docker: docker_image
+        docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
-        cpu: threads
+		disks: "local-disk " + disk + " HDD"
+        cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
     }
@@ -466,22 +443,23 @@ task RegenieStep2AssociationTesting {
 # Join together all output relating to the scattered tasks in Step 2.
 # For each phenotype, one file will be made containing all analysis from Step 1 on each chromosome used in testing.
 task join_Output {
-
   input {
-    Array[Array[File]] output_files # All output from Step 1.
+    Array[Array[File]] output_files # All output from Step 2.
     Array[String] phenotype_names
     Array[Int] chr_list
-    Int? memory
-    Int? disk
-    Int? threads
-    Int? preemptible
-    Int? maxRetries
-    String docker_image_R
+    String docker
+    Float memory = 3.5
+    Int? disk_size_override
+    Int cpu = 1
+    Int preemptible = 1
+    Int maxRetries = 0
   }
-
   Array[File] all_output_files = flatten(output_files)
+  Float regenie_files_size = size(all_output_files, "GiB")
+  Int disk = select_first([disk_size_override, ceil(30.0 + 2.0 * regenie_files_size)])
 
   command <<<
+        set -euo pipefail
         for array in ~{sep=' ' all_output_files}; do \
           for file in $array; do \
             mv $file .; \
@@ -494,14 +472,14 @@ task join_Output {
   >>>
 
   output {
-        Array[File] outputs = glob("*.regenie")
+    Array[File] outputs = glob("*.regenie")
   }
 
   runtime {
-        docker: docker_image_R
+        docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
-        cpu: threads
+		disks: "local-disk " + disk + " HDD"
+        cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
   }
@@ -509,25 +487,27 @@ task join_Output {
 
 # QQ and Manhattan plots
 task Plots {
-
   input {
     Array[String] phenotype_names_regenie # Format: "<phenotype_name>.regenie". Names of the files produced in join_Output.
     Array[Int] chr_list
-    Int? memory
-    Int? disk
-    Int? threads
-    Int? preemptible
-    Int? maxRetries
-    String docker_image_R
     Array[File] file_input
+    String docker
+    Float memory = 16.0
+    Int? disk_size_override
+    Int cpu = 1
+    Int preemptible = 1
+    Int maxRetries = 0
   }
+  Float regenie_files_size = size(file_input, "GiB")
+  Int disk = select_first([disk_size_override, ceil(10.0 + regenie_files_size)])
 
   # Plots are produced for each phenotype.
   # For each phenotype, a file containing all of the hits from Step 2 is output.
   # For each phenotype, a file containing a subset of all of the hits where "-LOG10P > 1.3" from Step 2 is output.
   command <<<
+    set -euo pipefail
     for file in ~{sep=' ' file_input}; do \
-      awk '$13 > 1.3' $file >> ${file%.regenie}_subset.regenie; \
+      awk '$12 > 1.3' $file >> ${file%.regenie}_subset.regenie; \
       mv ${file%.regenie}_subset.regenie .; \
       mv $file .; \
     done
@@ -538,35 +518,36 @@ task Plots {
     library(qqman)
     args <- commandArgs(trailingOnly = TRUE)
     for (file in args) {
-     regenie_output <- fread(file)
-      regenie_ADD_subset <-subset.data.frame(regenie_output, TEST=="ADD")
-      regenie_ADD_subset[,"CHROM"] <-as.numeric(unlist(regenie_ADD_subset[,"CHROM"]))
-      regenie_ADD_subset[,"LOG10P"] <-as.numeric(unlist(regenie_ADD_subset[,"LOG10P"]))
-      regenie_ADD_subset[,"GENPOS"] <-as.numeric(unlist(regenie_ADD_subset[,"GENPOS"]))
-      qq_plot = substr(file,1,nchar(file)-8)
-      qq_plot = paste(qq_plot, "qqplot.png", sep="_")
-      png(qq_plot)
-      print(qq(as.numeric(unlist(regenie_ADD_subset[,"LOG10P"]))))
-      dev.off()
-      manhattan_plot = substr(file,1,nchar(file)-8)
-      manhattan_plot = paste(manhattan_plot, "manhattan.png", sep="_")
-      png(manhattan_plot)
-      print(manhattan(regenie_ADD_subset, chr="CHROM", bp="GENPOS", snp="ID", p="LOG10P", annotatePval = 1E-5))
-      dev.off()
+      regenie_output <- fread(file)
+        regenie_ADD_subset <-subset.data.frame(regenie_output, TEST=="ADD")
+        regenie_ADD_subset[,"CHROM"] <-as.numeric(unlist(regenie_ADD_subset[,"CHROM"]))
+        regenie_ADD_subset[,"LOG10P"] <-as.numeric(unlist(regenie_ADD_subset[,"LOG10P"]))
+        regenie_ADD_subset[,"GENPOS"] <-as.numeric(unlist(regenie_ADD_subset[,"GENPOS"]))
+        qq_plot = substr(file,1,nchar(file)-8)
+        qq_plot = paste(qq_plot, "qqplot.png", sep="_")
+        png(qq_plot)
+        p = 10 ^ (-1 * (as.numeric(unlist(regenie_ADD_subset[,"LOG10P"]))))
+        print(qq(p))
+        dev.off()
+        manhattan_plot = substr(file,1,nchar(file)-8)
+        manhattan_plot = paste(manhattan_plot, "manhattan.png", sep="_")
+        png(manhattan_plot)
+        print(manhattan(regenie_ADD_subset, chr="CHROM", bp="GENPOS", snp="ID", p="LOG10P", logp=FALSE, annotatePval = 1E-5))
+        dev.off()
       }
     RSCRIPT
   >>>
 
   output {
-        Array[File] output_plots = glob("*.png")
-        Array[File] output_regenie = glob("*.regenie")
+    Array[File] output_plots = glob("*.png")
+    Array[File] output_regenie = glob("*.regenie")
   }
 
   runtime {
-        docker: docker_image_R
+        docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
-        cpu: threads
+		disks: "local-disk " + disk + " HDD"
+        cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
   }
