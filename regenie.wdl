@@ -1,17 +1,17 @@
 version 1.0
 
-## Version 06-06-2021
+## Version 08-19-2021
 ##
 ## This WDL workflow runs Regenie.
 ## This workflow assumes users have thoroughly read the Regenie docs for caveats and details.
 ## Regenie's documentation: https://rgcgithub.github.io/regenie/options/
 ##
-## Step1 - Made with BGEN files in mind to use as the input genetic data file. - (BGEN version 1.2, 8-bit probabilities).
-## Step2 - Use separate .bed, .bim, .fam files for each chromosome. (If testing chr 1-22, there should be 22 separate files).
-## PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
-## PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
+##  Step1 - Made with BGEN files in mind to use as the input genetic data file. - (BGEN version 1.2, 8-bit probabilities).
+##  Step2 - Use separate .bed, .bim, .fam files for each chromosome. (If testing chr 1-22, there should be 22 separate files).
+##  PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
+##  PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
 ##
-## Cromwell version support - Successfully tested on v63
+## Cromwell version support - Successfully tested on v66
 ##
 ## Distributed under terms of the MIT License
 ## Copyright (c) 2021 Brian Sharber
@@ -39,8 +39,8 @@ workflow Regenie {
         File? pred
         Array[Int] chr_list # List of chromosomes used for analysis.
         Array[String] phenotype_names # Phenotypes you want to analyze. (Column names).
-        String regenie_docker = "briansha/regenie:v2.0.1_boost" # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
-        String r_base_docker = "r-base:4.0.3"
+        String regenie_docker = "briansha/regenie:v2.2.2_boost" # Compiled with Boost IOSTREAM: https://github.com/rgcgithub/regenie/wiki/Using-docker
+        String r_base_docker = "briansha/regenie_r_base:4.1.0"  # Ubuntu 18.04, R 4.1.0, and a few Ubuntu and R packages.
     }
     Array[Array[String]] bed_files_step2 = read_tsv(bed_files_step2_file)
 
@@ -245,7 +245,7 @@ task RegenieStep1WholeGenomeModel {
     runtime {
         docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
@@ -433,7 +433,7 @@ task RegenieStep2AssociationTesting {
     runtime {
         docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
@@ -478,7 +478,7 @@ task join_Output {
   runtime {
         docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
@@ -512,9 +512,7 @@ task Plots {
       mv $file .; \
     done
     R --no-save --args ~{sep=' ' phenotype_names_regenie} <<RSCRIPT
-    install.packages("data.table", dependencies=TRUE)
     library(data.table)
-    install.packages("qqman", dependencies=TRUE)
     library(qqman)
     args <- commandArgs(trailingOnly = TRUE)
     for (file in args) {
@@ -546,7 +544,7 @@ task Plots {
   runtime {
         docker: docker
         memory: memory + " GiB"
-	disks: "local-disk " + disk + " HDD"
+		disks: "local-disk " + disk + " HDD"
         cpu: cpu
         preemptible: preemptible
         maxRetries: maxRetries
