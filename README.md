@@ -2,8 +2,8 @@
 
 This is a workflow for regenie. 
 
-The workflow regenie.wdl can be found on Dockstore: https://dockstore.org/workflows/github.com/briansha/Regenie_WDL/regenie:master?tab=info
-The workflow regenie_alternate can be found on Dockstore:  https://dockstore.org/my-workflows/github.com/briansha/Regenie_WDL/regenie_alternate
+- The workflow regenie.wdl can be found on Dockstore: https://dockstore.org/workflows/github.com/briansha/Regenie_WDL/regenie:master?tab=info
+- The workflow regenie_alternate can be found on Dockstore:  https://dockstore.org/my-workflows/github.com/briansha/Regenie_WDL/regenie_alternate
 
 regenie: https://rgcgithub.github.io/regenie/
 
