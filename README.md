@@ -1,6 +1,8 @@
 # Regenie WDL
 
-This is a workflow for regenie. 
+This is a workflow for regenie.
+
+Written using WDL - https://github.com/openwdl/wdl/blob/main/versions/development/SPEC.md#scatter
 
 - The workflow regenie.wdl can be found on Dockstore: https://dockstore.org/workflows/github.com/briansha/Regenie_WDL/regenie:master?tab=info
 - The workflow regenie_alternate can be found on Dockstore:  https://dockstore.org/workflows/github.com/briansha/Regenie_WDL/regenie_alternate:master?tab=info
