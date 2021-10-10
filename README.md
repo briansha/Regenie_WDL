@@ -9,7 +9,7 @@ Written using WDL - https://github.com/openwdl/wdl/blob/main/versions/developmen
 
 regenie: https://rgcgithub.github.io/regenie/
 
-Step1 and Step2 use docker images with regenie compiled with Boost Iostream installed: https://github.com/rgcgithub/regenie/wiki/Using-docker
+Step1 and Step2 use docker images where regenie was compiled with Boost Iostream: https://github.com/rgcgithub/regenie/wiki/Using-docker
 
 The docker image for the Plot task uses the provided Dockerfile.
 
