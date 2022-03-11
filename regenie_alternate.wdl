@@ -11,7 +11,7 @@ version 1.0
 ## PLINK can be used to convert bed, bim, and fam files to BGEN files outside of this workflow.
 ## PLINK can also be used to convert pgen, pvar, and psam files to BGEN files outside of this workflow.
 ##
-## Cromwell version support - Successfully tested on v66
+## Cromwell version support - Successfully tested on v77
 ##
 ## Distributed under terms of the MIT License
 ## Copyright (c) 2021 Brian Sharber
@@ -239,7 +239,7 @@ task RegenieStep1WholeGenomeModel {
         ~{if defined(cv) then "--cv=~{cv} " else " "} \
         ~{if loocv then "--loocv " else " "} \
         ~{if lowmem then "--lowmem " else " "} \
-        ~{if lowmem_prefix then "--lowmem-prefix=~{lowmem_prefix} " else " "} \
+        ~{if defined(lowmem_prefix) then "--lowmem-prefix=~{lowmem_prefix} " else " "} \
         ~{if defined(split_l0) then "--split-l0=~{split_l0} " else " "} \
         ~{if defined(run_l0) then "--run-l0=~{run_l0} " else " "} \
         ~{if defined(run_l1) then "--run-l1=~{run_l1} " else " "} \
@@ -396,9 +396,9 @@ task RegenieStep2AssociationTesting {
         String? interaction_snp
         File? interaction_file
         File? interaction_file_sample
-        Boolean? interaction_file_reffirst
-        Boolean? no_condtl
-        Boolean? force_condtl
+        Boolean interaction_file_reffirst = false
+        Boolean no_condtl = false
+        Boolean force_condtl = false
         Float? rare_mac
 
         # Conditional analyses
@@ -483,7 +483,7 @@ task RegenieStep2AssociationTesting {
         ~{if defined(cv) then "--cv=~{cv} " else " "} \
         ~{if loocv then "--loocv " else " "} \
         ~{if lowmem then "--lowmem " else " "} \
-        ~{if lowmem_prefix then "--lowmem-prefix=~{lowmem_prefix} " else " "} \
+        ~{if defined(lowmem_prefix) then "--lowmem-prefix=~{lowmem_prefix} " else " "} \
         ~{if defined(split_l0) then "--split-l0=~{split_l0} " else " "} \
         ~{if defined(run_l0) then "--run-l0=~{run_l0} " else " "} \
         ~{if defined(run_l1) then "--run-l1=~{run_l1} " else " "} \
