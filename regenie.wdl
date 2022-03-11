@@ -323,7 +323,6 @@ task RegenieStep2AssociationTesting {
         String? chr_name
 
         # Basic options
-        File bgen_step1
         File? sample
         Boolean ref_first = false
         File? keep

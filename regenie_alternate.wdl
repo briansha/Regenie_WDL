@@ -317,7 +317,6 @@ task RegenieStep2AssociationTesting {
         Array[File] output_locos
 
         # Basic options
-        File bgen_step1
         File? sample
         Boolean ref_first = false
         File? keep
